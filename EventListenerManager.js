@@ -19,9 +19,11 @@ export default class EventListenerManager {
     const listeners = this._listeners;
     if (!listeners.has(listener)) {
       listeners.add(listener);
-      const stack = new Error().stack;
-      this._stacksOnListenerAdded.set(listener, stack);
-      this._sourceOfListeners.set(listener, stack.split('\n')[1]);
+      if (EventListenerManager.debug) {
+        const stack = new Error().stack;
+        this._stacksOnListenerAdded.set(listener, stack);
+        this._sourceOfListeners.set(listener, stack.split('\n')[1]);
+      }
     }
   }
 
@@ -50,8 +52,8 @@ export default class EventListenerManager {
   dispatchWithDetails(...args) {
     const listeners = Array.from(this._listeners);
     const results = listeners.map(listener => {
-      const startAt = Date.now();
-      const timer = setTimeout(() => {
+      const startAt = EventListenerManager.debug && Date.now();
+      const timer = EventListenerManager.debug && setTimeout(() => {
         const listenerAddedStack = this._stacksOnListenerAdded.get(listener);
         console.log(`listener does not respond in ${TIMEOUT}ms.\n${listenerAddedStack}\n\n${new Error().stack}`);
       }, TIMEOUT);
@@ -63,25 +65,28 @@ export default class EventListenerManager {
               console.log(e);
             })
             .then(result => {
-              clearTimeout(timer);
+              if (timer)
+                clearTimeout(timer);
               return {
                 value:    result,
-                elapsed:  Date.now() - startAt,
+                elapsed:  EventListenerManager.debug && (Date.now() - startAt),
                 async:    true,
-                listener: this._sourceOfListeners.get(listener)
+                listener: EventListenerManager.debug && this._sourceOfListeners.get(listener)
               };
             });
-        clearTimeout(timer);
+        if (timer)
+          clearTimeout(timer);
         return {
           value:    result,
-          elapsed:  Date.now() - startAt,
+          elapsed:  EventListenerManager.debug && (Date.now() - startAt),
           async:    false,
-          listener: this._sourceOfListeners.get(listener)
+          listener: EventListenerManager.debug && this._sourceOfListeners.get(listener)
         };
       }
       catch(e) {
         console.log(e);
-        clearTimeout(timer);
+        if (timer)
+          clearTimeout(timer);
       }
     });
     if (results.some(result => result instanceof Promise))
@@ -100,3 +105,5 @@ export default class EventListenerManager {
     return true;
   }
 }
+
+EventListenerManager.debug = false;
