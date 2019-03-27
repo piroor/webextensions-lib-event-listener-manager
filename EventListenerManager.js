@@ -12,31 +12,45 @@ export default class EventListenerManager {
   constructor() {
     this._listeners = new Set();
     this._stacksOnListenerAdded = new WeakMap();
+    this._sourceOfListeners = new WeakMap();
   }
 
   addListener(listener) {
     const listeners = this._listeners;
     if (!listeners.has(listener)) {
       listeners.add(listener);
-      this._stacksOnListenerAdded.set(listener, new Error().stack);
+      const stack = new Error().stack;
+      this._stacksOnListenerAdded.set(listener, stack);
+      this._sourceOfListeners.set(listener, stack.split('\n')[1]);
     }
   }
 
   removeListener(listener) {
     this._listeners.delete(listener);
     this._stacksOnListenerAdded.delete(listener);
+    this._sourceOfListeners.delete(listener);
   }
 
   removeAllListeners() {
     this._listeners.clear();
     this._stacksOnListenerAdded.clear();
+    this._sourceOfListeners.clear();
+  }
+
+  dispatch(...args) {
+    const results = this.dispatchWithDetails(...args);
+    if (results instanceof Promise)
+      return results.then(this.normalizeResults);
+    else
+      return this.normalizeResults(results);
   }
 
   // We hope to process results synchronously if possibly,
   // so this method must not be "async".
-  dispatch(...args) {
+  dispatchWithDetails(...args) {
     const listeners = Array.from(this._listeners);
     const results = listeners.map(listener => {
+      const startAt = Date.now();
       const timer = setTimeout(() => {
         const listenerAddedStack = this._stacksOnListenerAdded.get(listener);
         console.log(`listener does not respond in ${TIMEOUT}ms.\n${listenerAddedStack}\n\n${new Error().stack}`);
@@ -50,10 +64,20 @@ export default class EventListenerManager {
             })
             .then(result => {
               clearTimeout(timer);
-              return result;
+              return {
+                value:    result,
+                elapsed:  Date.now() - startAt,
+                async:    true,
+                listener: this._sourceOfListeners.get(listener)
+              };
             });
         clearTimeout(timer);
-        return result;
+        return {
+          value:    result,
+          elapsed:  Date.now() - startAt,
+          async:    false,
+          listener: this._sourceOfListeners.get(listener)
+        };
       }
       catch(e) {
         console.log(e);
@@ -61,16 +85,16 @@ export default class EventListenerManager {
       }
     });
     if (results.some(result => result instanceof Promise))
-      return Promise.all(results).then(this.normalizeResults);
+      return Promise.all(results);
     else
-      return this.normalizeResults(results);
+      return results;
   }
 
   normalizeResults(results) {
     if (results.length == 1)
-      return results[0];
+      return results[0].value;
     for (const result of results) {
-      if (result === false)
+      if (result.value === false)
         return false;
     }
     return true;
