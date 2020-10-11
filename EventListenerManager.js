@@ -55,7 +55,7 @@ export default class EventListenerManager {
       const startAt = EventListenerManager.debug && Date.now();
       const timer = EventListenerManager.debug && setTimeout(() => {
         const listenerAddedStack = this._stacksOnListenerAdded.get(listener);
-        console.log(`listener does not respond in ${TIMEOUT}ms.\n${listenerAddedStack || 'already removed listener: '+listener.toString()}\n\n${new Error().stack}`);
+        console.log(`listener does not respond in ${TIMEOUT}ms.\n----------------------\n${listenerAddedStack || 'non debug mode or already removed listener:\n'+listener.toString()}\n----------------------\n${new Error().stack}`);
       }, TIMEOUT);
       try {
         const result = listener(...args);
