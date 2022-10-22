@@ -50,17 +50,20 @@ export default class EventListenerManager {
   // We hope to process results synchronously if possibly,
   // so this method must not be "async".
   dispatchWithDetails(...args) {
-    const listeners = Array.from(this._listeners);
-    const results = listeners.map(listener => {
+    const results = Array(this._listeners.size);
+    let index = 0;
+
+    for (let listener of this._listeners) {
       const startAt = EventListenerManager.debug && Date.now();
       const timer = EventListenerManager.debug && setTimeout(() => {
         const listenerAddedStack = this._stacksOnListenerAdded.get(listener);
         console.log(`listener does not respond in ${TIMEOUT}ms.\n----------------------\n${listenerAddedStack || 'non debug mode or already removed listener:\n'+listener.toString()}\n----------------------\n${new Error().stack}\n----------------------\nargs:`, args);
       }, TIMEOUT);
+
       try {
         const result = listener(...args);
         if (result instanceof Promise)
-          return result
+          results[index++] = result
             .catch(e => {
               console.log(e);
             })
@@ -76,7 +79,7 @@ export default class EventListenerManager {
             });
         if (timer)
           clearTimeout(timer);
-        return {
+        results[index++] = {
           value:    result,
           elapsed:  EventListenerManager.debug && (Date.now() - startAt),
           async:    false,
@@ -88,7 +91,8 @@ export default class EventListenerManager {
         if (timer)
           clearTimeout(timer);
       }
-    });
+    }
+
     if (results.some(result => result instanceof Promise))
       return Promise.all(results);
     else
