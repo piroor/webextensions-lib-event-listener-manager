@@ -39,6 +39,10 @@ export default class EventListenerManager {
     this._sourceOfListeners.clear();
   }
 
+  hasListener() {
+    return this._listeners.size > 0;
+  }
+
   dispatch(...args) {
     const results = this.dispatchWithDetails(...args);
     if (results instanceof Promise)
