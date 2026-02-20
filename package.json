@@ -2,7 +2,7 @@
   "name": "webextensions-lib-event-listener-manager",
   "version": "0.0.0",
   "type": "module",
-  "exports": "./index.mjs"
+  "exports": "./index.mjs",
   "engines": {
     "node": ">=20.0.0"
   },
