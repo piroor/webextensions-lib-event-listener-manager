@@ -57,7 +57,7 @@ export default class EventListenerManager {
     const results = Array(this._listeners.size);
     let index = 0;
 
-    for (let listener of this._listeners) {
+    for (const listener of this._listeners) {
       const startAt = EventListenerManager.debug && Date.now();
       const timer = EventListenerManager.debug && setTimeout(() => {
         const listenerAddedStack = this._stacksOnListenerAdded.get(listener);
