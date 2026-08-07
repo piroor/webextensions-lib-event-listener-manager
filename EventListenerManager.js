@@ -66,7 +66,7 @@ export default class EventListenerManager {
 
       try {
         const result = listener(...args);
-        if (result instanceof Promise)
+        if (result instanceof Promise) {
           results[index++] = result
             .catch(e => {
               console.log(e);
@@ -78,17 +78,20 @@ export default class EventListenerManager {
                 value:    result,
                 elapsed:  EventListenerManager.debug && (Date.now() - startAt),
                 async:    true,
-                listener: EventListenerManager.debug && this._sourceOfListeners.get(listener)
+                listener: EventListenerManager.debug && this._sourceOfListeners.get(listener),
               };
             });
-        if (timer)
-          clearTimeout(timer);
-        results[index++] = {
-          value:    result,
-          elapsed:  EventListenerManager.debug && (Date.now() - startAt),
-          async:    false,
-          listener: EventListenerManager.debug && this._sourceOfListeners.get(listener)
-        };
+        }
+        else {
+          if (timer)
+            clearTimeout(timer);
+          results[index++] = {
+            value:    result,
+            elapsed:  EventListenerManager.debug && (Date.now() - startAt),
+            async:    false,
+            listener: EventListenerManager.debug && this._sourceOfListeners.get(listener),
+          };
+        }
       }
       catch(e) {
         console.log(e);
